@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EasyBorrow: ระบบยืม-คืนอุปกรณ์</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        /* Custom Styles for Pre-App Screen */
+        #preAppScreen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f8f9fa; /* Light background */
+            position: fixed; /* Keep it on top */
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 1050; /* Above modals */
+        }
+        .start-container {
+            text-align: center;
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15); /* More pronounced shadow */
+        }
+        .start-icon {
+            font-size: 5rem; /* Larger icon size */
+            margin-bottom: 20px;
+            color: #007bff; /* Primary blue color */
+        }
+        /* Main App Styles */
+        #mainApp {
+            display: none; /* Hidden by default */
+            padding-top: 20px;
+        }
+        .table img {
+            max-width: 60px;
+            max-height: 60px;
+            border-radius: 5px;
+            object-fit: cover;
+        }
+        .status-badge {
+            padding: .35em .65em;
+            border-radius: .25rem;
+            font-size: .75em;
+            font-weight: 700;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            display: inline-block;
+        }
+        .status-available { background-color: #d1e7dd; color: #0f5132; } /* Light green */
+        .status-borrowed { background-color: #fff3cd; color: #664d03; } /* Light yellow */
+        .status-damaged { background-color: #f8d7da; color: #842029; } /* Light red */
+        .status-active { background-color: #cff4fc; color: #055160; } /* Light cyan */
+        .status-returned { background-color: #d1e7dd; color: #0f5132; } /* Light green */
+
+    </style>
+</head>
+<body>
+
+    <div id="preAppScreen">
+        <div class="start-container">
+            <div class="start-icon">
+                <i class="bi bi-boxes"></i> 
+            </div>
+            <h1>EasyBorrow</h1>
+            <p class="lead">ระบบยืม-คืนอุปกรณ์อย่างง่าย</p>
+            <button class="btn btn-primary btn-lg mt-3" id="startButton">เริ่มต้น</button>
+        </div>
+    </div>
+
+    <div id="mainApp" class="container">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary rounded-bottom-3 mb-4 shadow-sm">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">EasyBorrow</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="devices-tab" data-bs-toggle="tab" data-bs-target="#devices" type="button" role="tab" aria-controls="devices" aria-selected="true" href="#"><i class="bi bi-box-seam"></i> อุปกรณ์</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="borrow-return-tab" data-bs-toggle="tab" data-bs-target="#borrow-return" type="button" role="tab" aria-controls="borrow-return" aria-selected="false" href="#"><i class="bi bi-arrow-left-right"></i> ยืม-คืน</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab" aria-controls="history" aria-selected="false" href="#"><i class="bi bi-clock-history"></i> ประวัติ</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <div class="tab-content" id="myTabContent">
+            <div class="tab-pane fade show active" id="devices" role="tabpanel" aria-labelledby="devices-tab">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2>รายการอุปกรณ์</h2>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#deviceModal" id="addDeviceBtn"><i class="bi bi-plus-circle"></i> เพิ่มอุปกรณ์ใหม่</button>
+                </div>
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="deviceSearch" placeholder="ค้นหาอุปกรณ์...">
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped shadow-sm rounded">
+                        <thead>
+                            <tr class="table-primary">
+                                <th>รูปภาพ</th>
+                                <th>ชื่ออุปกรณ์</th>
+                                <th>รหัส</th>
+                                <th>สถานะ</th>
+                                <th class="text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deviceList">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="borrow-return" role="tabpanel" aria-labelledby="borrow-return-tab">
+                <h2 class="mb-4">จัดการยืม-คืนอุปกรณ์</h2>
+                <ul class="nav nav-pills mb-3 justify-content-center" id="pills-tab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="pills-borrow-tab" data-bs-toggle="pill" data-bs-target="#pills-borrow" type="button" role="tab" aria-controls="pills-borrow" aria-selected="true"><i class="bi bi-box-arrow-in-right"></i> ยืมอุปกรณ์</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="pills-return-tab" data-bs-toggle="pill" data-bs-target="#pills-return" type="button" role="tab" aria-controls="pills-return" aria-selected="false"><i class="bi bi-box-arrow-left"></i> คืนอุปกรณ์</button>
+                    </li>
+                </ul>
+                <div class="tab-content" id="pills-tabContent">
+                    <div class="tab-pane fade show active p-4 border rounded shadow-sm" id="pills-borrow" role="tabpanel" aria-labelledby="pills-borrow-tab">
+                        <h4>ยืมอุปกรณ์</h4>
+                        <form id="borrowForm">
+                            <div class="mb-3">
+                                <label for="borrowDevice" class="form-label">เลือกอุปกรณ์ <span class="text-danger">*</span></label>
+                                <select class="form-select" id="borrowDevice" required>
+                                    <option value="">-- เลือกอุปกรณ์ที่ว่าง --</option>
+                                    </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="borrowerName" class="form-label">ชื่อผู้ยืม <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="borrowerName" required placeholder="ระบุชื่อผู้ยืม">
+                            </div>
+                            <div class="mb-3">
+                                <label for="borrowDate" class="form-label">วันที่ยืม <span class="text-danger">*</span></label>
+                                <input type="datetime-local" class="form-control" id="borrowDate" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="dueDate" class="form-label">กำหนดคืน <span class="text-danger">*</span></label>
+                                <input type="datetime-local" class="form-control" id="dueDate" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle"></i> ยืนยันการยืม</button>
+                        </form>
+                    </div>
+
+                    <div class="tab-pane fade p-4 border rounded shadow-sm" id="pills-return" role="tabpanel" aria-labelledby="pills-return-tab">
+                        <h4>คืนอุปกรณ์</h4>
+                        <form id="returnForm">
+                            <div class="mb-3">
+                                <label for="returnBorrowing" class="form-label">เลือกรายการยืมที่ต้องการคืน <span class="text-danger">*</span></label>
+                                <select class="form-select" id="returnBorrowing" required>
+                                    <option value="">-- เลือกรายการที่ยังไม่คืน --</option>
+                                    </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="returnDate" class="form-label">วันที่คืน <span class="text-danger">*</span></label>
+                                <input type="datetime-local" class="form-control" id="returnDate" required>
+                            </div>
+                            <button type="submit" class="btn btn-success"><i class="bi bi-arrow-return-left"></i> ยืนยันการคืน</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="history" role="tabpanel" aria-labelledby="history-tab">
+                <h2 class="mb-4">ประวัติการยืม-คืน</h2>
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="historySearch" placeholder="ค้นหาประวัติ (อุปกรณ์, ผู้ยืม)...">
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped shadow-sm rounded">
+                        <thead>
+                            <tr class="table-info">
+                                <th>รหัสยืม</th>
+                                <th>ชื่ออุปกรณ์</th>
+                                <th>ผู้ยืม</th>
+                                <th>วันที่ยืม</th>
+                                <th>กำหนดคืน</th>
+                                <th>วันที่คืนจริง</th>
+                                <th>สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyList">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deviceModal" tabindex="-1" aria-labelledby="deviceModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deviceModalLabel">เพิ่ม/แก้ไขอุปกรณ์</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="deviceForm">
+                        <input type="hidden" id="deviceId"> <div class="mb-3">
+                            <label for="deviceName" class="form-label">ชื่ออุปกรณ์ <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="deviceName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="deviceCode" class="form-label">รหัสอุปกรณ์ <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="deviceCode" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="deviceStatus" class="form-label">สถานะ <span class="text-danger">*</span></label>
+                            <select class="form-select" id="deviceStatus" required>
+                                <option value="available">ว่าง</option>
+                                <option value="borrowed">ถูกยืม</option>
+                                <option value="damaged">ชำรุด</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="deviceImage" class="form-label">รูปภาพ (URL)</label>
+                            <input type="url" class="form-control" id="deviceImage" placeholder="e.g., https://via.placeholder.com/150">
+                        </div>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> บันทึก</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // --- Core Data Storage and Management ---
+        const DATA_KEY = 'easyBorrowData';
+
+        let appData = {
+            devices: [],
+            borrowings: []
+        };
+
+        function loadData() {
+            const storedData = localStorage.getItem(DATA_KEY);
+            if (storedData) {
+                appData = JSON.parse(storedData);
+            } else {
+                // Initialize with some dummy data if empty
+                appData = {
+                    devices: [
+                        { id: generateId(), name: 'โปรเจคเตอร์ BenQ', code: 'PJ-B001', status: 'available', imageUrl: 'https://via.placeholder.com/60/007bff/FFFFFF?text=PJT' },
+                        { id: generateId(), name: 'โน้ตบุ๊ก Acer', code: 'NB-A002', status: 'borrowed', imageUrl: 'https://via.placeholder.com/60/28a745/FFFFFF?text=NB' },
+                        { id: generateId(), name: 'กล้อง DSLR Canon', code: 'CM-C003', status: 'available', imageUrl: 'https://via.placeholder.com/60/fd7e14/FFFFFF?text=CAM' }
+                    ],
+                    borrowings: [
+                        { borrowId: generateId(), deviceId: 'NB-A002', deviceName: 'โน้ตบุ๊ก Acer', borrowerName: 'สุดาพร มีสุข', borrowDate: '2025-07-01T09:00', dueDate: '2025-07-04T17:00', returnDate: null, status: 'active' },
+                        { borrowId: generateId(), deviceId: 'PJ-B001', deviceName: 'โปรเจคเตอร์ BenQ', borrowerName: 'ชาติชาย รักดี', borrowDate: '2025-06-28T14:30', dueDate: '2025-06-29T10:00', returnDate: '2025-06-28T16:00', status: 'returned' }
+                    ]
+                };
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem(DATA_KEY, JSON.stringify(appData));
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substring(2);
+        }
+
+        // --- UI Rendering Functions ---
+
+        function renderDevices(searchTerm = '') {
+            const deviceListBody = document.getElementById('deviceList');
+            deviceListBody.innerHTML = ''; // Clear existing list
+
+            const filteredDevices = appData.devices.filter(device =>
+                device.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                device.code.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+
+            filteredDevices.forEach(device => {
+                const row = document.createElement('tr');
+                const statusClass = `status-${device.status}`;
+                const statusText = {
+                    'available': 'ว่าง',
+                    'borrowed': 'ถูกยืม',
+                    'damaged': 'ชำรุด'
+                }[device.status];
+
+                row.innerHTML = `
+                    <td><img src="${device.imageUrl || 'https://via.placeholder.com/60'}" alt="${device.name}" class="img-fluid"></td>
+                    <td>${device.name}</td>
+                    <td>${device.code}</td>
+                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-info me-1 edit-device-btn" data-id="${device.id}"><i class="bi bi-pencil-square"></i></button>
+                        <button class="btn btn-sm btn-danger delete-device-btn" data-id="${device.id}"><i class="bi bi-trash"></i></button>
+                    </td>
+                `;
+                deviceListBody.appendChild(row);
+            });
+
+            addDeviceEventListeners();
+        }
+
+        function renderBorrowHistory(searchTerm = '') {
+            const historyListBody = document.getElementById('historyList');
+            historyListBody.innerHTML = ''; // Clear existing list
+
+            const filteredHistory = appData.borrowings.filter(borrow =>
+                borrow.deviceName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                borrow.borrowerName.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+
+            filteredHistory.forEach(borrow => {
+                const row = document.createElement('tr');
+                const statusClass = `status-${borrow.status}`;
+                const statusText = {
+                    'active': 'กำลังยืม',
+                    'returned': 'คืนแล้ว'
+                }[borrow.status];
+
+                row.innerHTML = `
+                    <td>${borrow.borrowId.substring(0, 8)}...</td>
+                    <td>${borrow.deviceName}</td>
+                    <td>${borrow.borrowerName}</td>
+                    <td>${formatDateTime(borrow.borrowDate)}</td>
+                    <td>${formatDateTime(borrow.dueDate)}</td>
+                    <td>${borrow.returnDate ? formatDateTime(borrow.returnDate) : '-'}</td>
+                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                `;
+                historyListBody.appendChild(row);
+            });
+        }
+
+        function populateBorrowDeviceDropdown() {
+            const borrowDeviceSelect = document.getElementById('borrowDevice');
+            borrowDeviceSelect.innerHTML = '<option value="">-- เลือกอุปกรณ์ที่ว่าง --</option>'; // Clear and add default
+
+            appData.devices.filter(device => device.status === 'available').forEach(device => {
+                const option = document.createElement('option');
+                option.value = device.id;
+                option.textContent = `${device.name} (${device.code})`;
+                borrowDeviceSelect.appendChild(option);
+            });
+        }
+
+        function populateReturnBorrowingDropdown() {
+            const returnBorrowingSelect = document.getElementById('returnBorrowing');
+            returnBorrowingSelect.innerHTML = '<option value="">-- เลือกรายการที่ยังไม่คืน --</option>'; // Clear and add default
+
+            appData.borrowings.filter(borrow => borrow.status === 'active').forEach(borrow => {
+                const option = document.createElement('option');
+                option.value = borrow.borrowId;
+                option.textContent = `${borrow.deviceName} โดย ${borrow.borrowerName} (ยืมเมื่อ: ${formatDateTime(borrow.borrowDate)})`;
+                returnBorrowingSelect.appendChild(option);
+            });
+        }
+
+        // --- Helper Functions ---
+        function formatDateTime(dateTimeString) {
+            if (!dateTimeString) return '-';
+            const date = new Date(dateTimeString);
+            return date.toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
+        }
+
+        function showToast(message, type = 'success') {
+            // A simple way to show a toast, Bootstrap 5 has built-in toast components
+            // For simplicity, we'll just use an alert for now or you can implement a custom one.
+            alert(message);
+        }
+
+        // --- Event Handlers ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            renderDevices();
+            renderBorrowHistory();
+            populateBorrowDeviceDropdown();
+            populateReturnBorrowingDropdown();
+
+            // Handle pre-app screen
+            document.getElementById('startButton').addEventListener('click', () => {
+                document.getElementById('preAppScreen').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'block';
+            });
+        });
+
+        // Device Tab Handlers
+        document.getElementById('deviceForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const id = document.getElementById('deviceId').value;
+            const name = document.getElementById('deviceName').value;
+            const code = document.getElementById('deviceCode').value;
+            const status = document.getElementById('deviceStatus').value;
+            const imageUrl = document.getElementById('deviceImage').value;
+
+            if (id) {
+                // Edit existing device
+                const deviceIndex = appData.devices.findIndex(d => d.id === id);
+                if (deviceIndex > -1) {
+                    appData.devices[deviceIndex] = { ...appData.devices[deviceIndex], name, code, status, imageUrl };
+                    showToast('อัปเดตอุปกรณ์สำเร็จ!');
+                }
+            } else {
+                // Add new device
+                const newDevice = {
+                    id: generateId(),
+                    name,
+                    code,
+                    status,
+                    imageUrl: imageUrl || 'https://via.placeholder.com/60'
+                };
+                appData.devices.push(newDevice);
+                showToast('เพิ่มอุปกรณ์ใหม่สำเร็จ!');
+            }
+            saveData();
+            renderDevices();
+            populateBorrowDeviceDropdown(); // Update borrow dropdown
+            const deviceModal = bootstrap.Modal.getInstance(document.getElementById('deviceModal'));
+            deviceModal.hide();
+            this.reset();
+        });
+
+        document.getElementById('addDeviceBtn').addEventListener('click', () => {
+            document.getElementById('deviceModalLabel').textContent = 'เพิ่มอุปกรณ์ใหม่';
+            document.getElementById('deviceId').value = '';
+            document.getElementById('deviceForm').reset();
+        });
+
+        function addDeviceEventListeners() {
+            document.querySelectorAll('.edit-device-btn').forEach(button => {
+                button.onclick = (e) => {
+                    const id = e.target.dataset.id || e.target.closest('button').dataset.id;
+                    const device = appData.devices.find(d => d.id === id);
+                    if (device) {
+                        document.getElementById('deviceModalLabel').textContent = 'แก้ไขอุปกรณ์';
+                        document.getElementById('deviceId').value = device.id;
+                        document.getElementById('deviceName').value = device.name;
+                        document.getElementById('deviceCode').value = device.code;
+                        document.getElementById('deviceStatus').value = device.status;
+                        document.getElementById('deviceImage').value = device.imageUrl;
+                        const deviceModal = new bootstrap.Modal(document.getElementById('deviceModal'));
+                        deviceModal.show();
+                    }
+                };
+            });
+
+            document.querySelectorAll('.delete-device-btn').forEach(button => {
+                button.onclick = (e) => {
+                    const id = e.target.dataset.id || e.target.closest('button').dataset.id;
+                    if (confirm('คุณแน่ใจหรือไม่ที่จะลบอุปกรณ์นี้?')) {
+                        // Check if device is currently borrowed
+                        const isBorrowed = appData.borrowings.some(b => b.deviceId === id && b.status === 'active');
+                        if (isBorrowed) {
+                            alert('ไม่สามารถลบอุปกรณ์นี้ได้ เนื่องจากมีการยืมอยู่!');
+                            return;
+                        }
+                        appData.devices = appData.devices.filter(d => d.id !== id);
+                        appData.borrowings = appData.borrowings.filter(b => b.deviceId !== id); // Also remove related history
+                        saveData();
+                        renderDevices();
+                        renderBorrowHistory();
+                        populateBorrowDeviceDropdown(); // Update borrow dropdown
+                        showToast('ลบอุปกรณ์สำเร็จ!');
+                    }
+                };
+            });
+        }
+
+        document.getElementById('deviceSearch').addEventListener('keyup', (e) => {
+            renderDevices(e.target.value);
+        });
+
+        // Borrow Form Handler
+        document.getElementById('borrowForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const deviceId = document.getElementById('borrowDevice').value;
+            const borrowerName = document.getElementById('borrowerName').value;
+            const borrowDate = document.getElementById('borrowDate').value;
+            const dueDate = document.getElementById('dueDate').value;
+
+            if (!deviceId || !borrowerName || !borrowDate || !dueDate) {
+                alert('กรุณากรอกข้อมูลให้ครบถ้วน!');
+                return;
+            }
+
+            const selectedDevice = appData.devices.find(d => d.id === deviceId);
+            if (selectedDevice && selectedDevice.status === 'available') {
+                selectedDevice.status = 'borrowed'; // Update device status
+
+                const newBorrowing = {
+                    borrowId: generateId(),
+                    deviceId: deviceId,
+                    deviceName: selectedDevice.name,
+                    borrowerName: borrowerName,
+                    borrowDate: borrowDate,
+                    dueDate: dueDate,
+                    returnDate: null,
+                    status: 'active'
+                };
+                appData.borrowings.push(newBorrowing);
+                saveData();
+                renderDevices(); // Re-render devices to show updated status
+                renderBorrowHistory(); // Update history
+                populateBorrowDeviceDropdown(); // Update borrow dropdown
+                populateReturnBorrowingDropdown(); // Update return dropdown
+                this.reset();
+                showToast('ยืมอุปกรณ์สำเร็จ!');
+            } else {
+                alert('อุปกรณ์ไม่พร้อมให้ยืม หรือข้อมูลไม่ถูกต้อง!');
+            }
+        });
+
+        // Return Form Handler
+        document.getElementById('returnForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const borrowId = document.getElementById('returnBorrowing').value;
+            const returnDate = document.getElementById('returnDate').value;
+
+            if (!borrowId || !returnDate) {
+                alert('กรุณาเลือกรายการยืมและระบุวันที่คืน!');
+                return;
+            }
+
+            const borrowingIndex = appData.borrowings.findIndex(b => b.borrowId === borrowId && b.status === 'active');
+
+            if (borrowingIndex > -1) {
+                const borrowing = appData.borrowings[borrowingIndex];
+                borrowing.returnDate = returnDate;
+                borrowing.status = 'returned';
+
+                // Update device status back to available
+                const device = appData.devices.find(d => d.id === borrowing.deviceId);
+                if (device) {
+                    device.status = 'available';
+                }
+
+                saveData();
+                renderDevices(); // Re-render devices to show updated status
+                renderBorrowHistory(); // Update history
+                populateBorrowDeviceDropdown(); // Update borrow dropdown
+                populateReturnBorrowingDropdown(); // Update return dropdown
+                this.reset();
+                showToast('คืนอุปกรณ์สำเร็จ!');
+            } else {
+                alert('ไม่พบรายการยืมที่กำลังใช้งาน หรือรายการได้ถูกคืนไปแล้ว!');
+            }
+        });
+
+        // History Search
+        document.getElementById('historySearch').addEventListener('keyup', (e) => {
+            renderBorrowHistory(e.target.value);
+        });
+
+        // Auto-fill current date/time for borrow/return forms when tabs are shown
+        document.getElementById('pills-borrow-tab').addEventListener('shown.bs.tab', function (event) {
+            const now = new Date();
+            const formattedNow = now.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
+            document.getElementById('borrowDate').value = formattedNow;
+        });
+
+        document.getElementById('pills-return-tab').addEventListener('shown.bs.tab', function (event) {
+            const now = new Date();
+            const formattedNow = now.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
+            document.getElementById('returnDate').value = formattedNow;
+            populateReturnBorrowingDropdown(); // Ensure dropdown is fresh when tab is selected
+        });
+
+        document.getElementById('borrow-return-tab').addEventListener('shown.bs.tab', function (event) {
+            // When the main "ยืม-คืน" tab is shown, ensure relevant dropdowns are updated
+            populateBorrowDeviceDropdown();
+            populateReturnBorrowingDropdown();
+            // Also, set current date/time for default active tab (borrow)
+            const now = new Date();
+            const formattedNow = now.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
+            document.getElementById('borrowDate').value = formattedNow;
+        });
+
+        document.getElementById('devices-tab').addEventListener('shown.bs.tab', function (event) {
+            renderDevices(); // Re-render devices when this tab is selected
+        });
+
+        document.getElementById('history-tab').addEventListener('shown.bs.tab', function (event) {
+            renderBorrowHistory(); // Re-render history when this tab is selected
+        });
+
+    </script>
+</body>
+</html>
