@@ -31,10 +31,12 @@
             border-radius: 15px;
             box-shadow: 0 8px 16px rgba(0,0,0,0.15); /* More pronounced shadow */
         }
-        .start-icon {
-            font-size: 5rem; /* Larger icon size */
+        .start-logo {
             margin-bottom: 20px;
-            color: #007bff; /* Primary blue color */
+        }
+        .start-logo img {
+            max-width: 150px; /* Adjust as needed */
+            height: auto;
         }
         /* Main App Styles */
         #mainApp {
@@ -76,11 +78,12 @@
 
     <div id="preAppScreen">
         <div class="start-container">
-            <div class="start-icon">
-                <i class="bi bi-boxes"></i> 
+            <div class="start-logo">
+                <img src="S__30875655.jpg" alt="PRC LIVE M.3 Logo">
             </div>
-            <h1>ระบบยืมคืนอุปกรณ์ช่างภาพ ม.3</h1>
-            <p class="lead">ระบบยืม-คืนอุปกรณ์อย่างง่าย</p>
+            <h1>PRC LIVE M.3</h1>
+            <p class="lead">LIVE AND PHOTOGRAPHY</p>
+            <p class="lead" style="font-style: italic; font-size: 0.9em;">By The Prince Royal's College M.3</p>
             <button class="btn btn-primary btn-lg mt-3" id="startButton">เริ่มต้น</button>
         </div>
     </div>
@@ -338,8 +341,8 @@
                     borrow.deviceId === device.id && borrow.status === 'active'
                 );
                 const currentResponsiblePerson = currentBorrowing 
-                                                    ? currentBorrowing.borrowerName 
-                                                    : (device.ownerBorrower || '-'); // ใช้ ownerBorrower หากไม่มีการยืม
+                                                                ? currentBorrowing.borrowerName 
+                                                                : (device.ownerBorrower || '-'); // ใช้ ownerBorrower หากไม่มีการยืม
 
                 row.innerHTML = `
                     <td><img src="${device.imageUrl || 'https://via.placeholder.com/60/cccccc/333333?text=ITEM'}" alt="${device.name}" class="img-fluid"></td>
@@ -578,159 +581,169 @@
             this.reset(); // ล้างฟอร์ม
         });
 
-        // เมื่อกดปุ่ม "เพิ่มอุปกรณ์ใหม่"
+        // Event listener สำหรับปุ่ม "เพิ่มอุปกรณ์ใหม่"
         document.getElementById('addDeviceBtn').addEventListener('click', () => {
-            document.getElementById('deviceModalLabel').textContent = 'เพิ่มอุปกรณ์ใหม่';
-            document.getElementById('deviceId').value = ''; // เคลียร์ ID เพื่อระบุว่าเป็นการเพิ่มใหม่
+            // ล้างฟอร์มและตั้งค่าเริ่มต้น
             document.getElementById('deviceForm').reset();
-            
-            // ตั้งค่าเริ่มต้นสำหรับอุปกรณ์ใหม่
-            document.getElementById('deviceStatus').value = 'available';
-            document.getElementById('deviceOwnerBorrower').value = 'ผู้ดูแลระบบ';
-            document.getElementById('deviceBorrowedDate').value = ''; // เคลียร์ค่า
-            document.getElementById('deviceReturnedDate').value = ''; // เคลียร์ค่า
-            toggleBorrowerFields('available'); // แสดงช่องตามสถานะเริ่มต้น
+            document.getElementById('deviceId').value = ''; // เคลียร์ ID เพื่อให้เป็นการเพิ่มใหม่
+            document.getElementById('deviceModalLabel').textContent = 'เพิ่มอุปกรณ์ใหม่';
+            // ซ่อนช่องข้อมูลผู้รับผิดชอบเมื่อเริ่มเพิ่มอุปกรณ์ใหม่
+            toggleBorrowerFields('available'); 
         });
 
-        // เพิ่ม Event Listeners ให้ปุ่ม Edit/Delete ที่ถูกสร้างขึ้นมาใหม่
+        // Event listener สำหรับปุ่ม "แก้ไข" (ใช้ Event Delegation)
         function addDeviceEventListeners() {
             document.querySelectorAll('.edit-device-btn').forEach(button => {
-                button.addEventListener('click', function() {
-                    const id = this.dataset.id;
-                    const device = appData.devices.find(d => d.id === id);
-                    if (device) {
-                        document.getElementById('deviceModalLabel').textContent = 'แก้ไขอุปกรณ์';
-                        document.getElementById('deviceId').value = device.id;
-                        document.getElementById('deviceName').value = device.name;
-                        document.getElementById('deviceCode').value = device.code;
-                        document.getElementById('deviceStatus').value = device.status;
-                        document.getElementById('deviceImage').value = device.imageUrl;
-                        document.getElementById('deviceOwnerBorrower').value = device.ownerBorrower;
-                        document.getElementById('deviceBorrowedDate').value = device.borrowedDate;
-                        document.getElementById('deviceReturnedDate').value = device.returnedDate;
-
-                        toggleBorrowerFields(device.status); // แสดง/ซ่อนช่องตามสถานะของอุปกรณ์ที่กำลังแก้ไข
-
-                        const deviceModal = new bootstrap.Modal(document.getElementById('deviceModal'));
-                        deviceModal.show();
-                    }
-                });
+                button.removeEventListener('click', handleEditDevice); // ลบ listener เก่าก่อนเพิ่มใหม่
+                button.addEventListener('click', handleEditDevice);
             });
-
             document.querySelectorAll('.delete-device-btn').forEach(button => {
-                button.addEventListener('click', function() {
-                    const id = this.dataset.id;
-                    if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบอุปกรณ์นี้?')) {
-                        // ตรวจสอบว่าอุปกรณ์ถูกยืมอยู่หรือไม่ก่อนลบ
-                        const isBorrowed = appData.borrowings.some(borrow => borrow.deviceId === id && borrow.status === 'active');
-                        if (isBorrowed) {
-                            showToast('ไม่สามารถลบอุปกรณ์ได้ในขณะที่อุปกรณ์นี้กำลังถูกยืมอยู่', 'danger');
-                            return;
-                        }
-                        appData.devices = appData.devices.filter(d => d.id !== id);
-                        saveData();
-                        renderDevices();
-                        showToast('ลบอุปกรณ์สำเร็จ!');
-                    }
-                });
+                button.removeEventListener('click', handleDeleteDevice); // ลบ listener เก่าก่อนเพิ่มใหม่
+                button.addEventListener('click', handleDeleteDevice);
             });
         }
 
-        // --- Borrow-Return Tab Handlers ---
-        // เมื่อฟอร์มยืมอุปกรณ์ถูกส่ง
+        function handleEditDevice(event) {
+            const deviceId = event.target.closest('button').dataset.id;
+            const device = appData.devices.find(d => d.id === deviceId);
+
+            if (device) {
+                document.getElementById('deviceId').value = device.id;
+                document.getElementById('deviceName').value = device.name;
+                document.getElementById('deviceCode').value = device.code;
+                document.getElementById('deviceStatus').value = device.status;
+                document.getElementById('deviceImage').value = device.imageUrl;
+                document.getElementById('deviceOwnerBorrower').value = device.ownerBorrower || '';
+                document.getElementById('deviceBorrowedDate').value = device.borrowedDate || '';
+                document.getElementById('deviceReturnedDate').value = device.returnedDate || '';
+
+                document.getElementById('deviceModalLabel').textContent = 'แก้ไขอุปกรณ์';
+                toggleBorrowerFields(device.status); // แสดง/ซ่อนช่องตามสถานะของอุปกรณ์ที่กำลังแก้ไข
+                const deviceModal = new bootstrap.Modal(document.getElementById('deviceModal'));
+                deviceModal.show();
+            }
+        }
+
+        function handleDeleteDevice(event) {
+            const deviceId = event.target.closest('button').dataset.id;
+            if (confirm('คุณแน่ใจหรือไม่ที่จะลบอุปกรณ์นี้?')) {
+                // ตรวจสอบว่ามีรายการยืมที่ยัง active สำหรับอุปกรณ์นี้หรือไม่
+                const isActiveBorrowing = appData.borrowings.some(borrow => borrow.deviceId === deviceId && borrow.status === 'active');
+                if (isActiveBorrowing) {
+                    showToast('ไม่สามารถลบอุปกรณ์นี้ได้ เนื่องจากมีรายการยืมที่ยังไม่ถูกคืน');
+                    return;
+                }
+
+                appData.devices = appData.devices.filter(d => d.id !== deviceId);
+                // ลบประวัติการยืม-คืนที่เกี่ยวข้องกับอุปกรณ์นี้ด้วย (ถ้าต้องการ)
+                appData.borrowings = appData.borrowings.filter(b => b.deviceId !== deviceId);
+                saveData();
+                renderDevices();
+                renderBorrowHistory();
+                populateBorrowDeviceDropdown();
+                populateReturnBorrowingDropdown();
+                showToast('ลบอุปกรณ์สำเร็จ!');
+            }
+        }
+
+        // --- Borrow/Return Tab Handlers ---
+        // เมื่อฟอร์มยืมถูกส่ง
         document.getElementById('borrowForm').addEventListener('submit', function(event) {
             event.preventDefault();
-
             const deviceId = document.getElementById('borrowDevice').value;
             const borrowerName = document.getElementById('borrowerName').value;
             const borrowDate = document.getElementById('borrowDate').value;
             const dueDate = document.getElementById('dueDate').value;
 
+            if (!deviceId || !borrowerName || !borrowDate || !dueDate) {
+                showToast('กรุณากรอกข้อมูลให้ครบถ้วน!');
+                return;
+            }
+            if (new Date(borrowDate) > new Date(dueDate)) {
+                showToast('กำหนดคืนต้องไม่ก่อนวันที่ยืม!');
+                return;
+            }
+
             const device = appData.devices.find(d => d.id === deviceId);
+            if (device && device.status === 'available') {
+                // อัปเดตสถานะอุปกรณ์
+                device.status = 'borrowed';
+                device.ownerBorrower = borrowerName; // กำหนดผู้รับผิดชอบปัจจุบัน
+                device.borrowedDate = borrowDate; // กำหนดวันที่ยืมในข้อมูลอุปกรณ์
+                device.returnedDate = ''; // เคลียร์วันที่คืน
 
-            if (!device) {
-                showToast('ไม่พบอุปกรณ์ที่เลือก', 'danger');
-                return;
+                // เพิ่มรายการยืมใหม่ในประวัติ
+                const newBorrowing = {
+                    borrowId: generateId(),
+                    deviceId: device.id,
+                    deviceName: device.name,
+                    borrowerName: borrowerName,
+                    borrowDate: borrowDate,
+                    dueDate: dueDate,
+                    returnDate: null,
+                    status: 'active'
+                };
+                appData.borrowings.push(newBorrowing);
+
+                saveData();
+                renderDevices();
+                renderBorrowHistory();
+                populateBorrowDeviceDropdown();
+                populateReturnBorrowingDropdown();
+                showToast(`ยืมอุปกรณ์ "${device.name}" โดย ${borrowerName} สำเร็จ!`);
+                this.reset();
+            } else {
+                showToast('อุปกรณ์ไม่พร้อมให้ยืม!');
             }
-            if (device.status !== 'available') {
-                showToast('อุปกรณ์นี้ไม่ว่างให้ยืม', 'danger');
-                return;
-            }
-
-            // สร้างรายการยืมใหม่
-            const newBorrowing = {
-                borrowId: generateId(),
-                deviceId: device.id,
-                deviceName: device.name,
-                borrowerName: borrowerName,
-                borrowDate: borrowDate,
-                dueDate: dueDate,
-                returnDate: null, // ยังไม่มีวันที่คืน
-                status: 'active' // สถานะกำลังยืม
-            };
-            appData.borrowings.push(newBorrowing);
-
-            // อัปเดตสถานะของอุปกรณ์ที่ถูกยืม
-            device.status = 'borrowed';
-            device.ownerBorrower = borrowerName;
-            device.borrowedDate = borrowDate;
-            device.returnedDate = ''; // เคลียร์วันที่คืนเมื่อถูกยืม
-
-            saveData();
-            renderDevices(); // อัปเดตตารางอุปกรณ์
-            renderBorrowHistory(); // อัปเดตประวัติ
-            populateBorrowDeviceDropdown(); // อัปเดต dropdown ยืม
-            populateReturnBorrowingDropdown(); // อัปเดต dropdown คืน
-            this.reset();
-            showToast('บันทึกการยืมอุปกรณ์สำเร็จ!');
         });
 
-        // เมื่อฟอร์มคืนอุปกรณ์ถูกส่ง
+        // เมื่อฟอร์มคืนถูกส่ง
         document.getElementById('returnForm').addEventListener('submit', function(event) {
             event.preventDefault();
-
-            const borrowId = document.getElementById('returnBorrowing').value;
+            const borrowingId = document.getElementById('returnBorrowing').value;
             const returnDate = document.getElementById('returnDate').value;
 
-            const borrowing = appData.borrowings.find(b => b.borrowId === borrowId && b.status === 'active');
-
-            if (!borrowing) {
-                showToast('ไม่พบรายการยืมที่ยังไม่คืน', 'danger');
+            if (!borrowingId || !returnDate) {
+                showToast('กรุณาเลือกรายการยืมและระบุวันที่คืน!');
                 return;
             }
 
-            // อัปเดตข้อมูลการยืม
-            borrowing.returnDate = returnDate;
-            borrowing.status = 'returned';
+            const borrowing = appData.borrowings.find(b => b.borrowId === borrowingId && b.status === 'active');
+            if (borrowing) {
+                // อัปเดตสถานะการยืม
+                borrowing.returnDate = returnDate;
+                borrowing.status = 'returned';
 
-            // อัปเดตสถานะของอุปกรณ์ที่ถูกคืน
-            const device = appData.devices.find(d => d.id === borrowing.deviceId);
-            if (device) {
-                device.status = 'available'; // เปลี่ยนเป็น 'available' เมื่อถูกคืน
-                device.ownerBorrower = 'ผู้ดูแลระบบ'; // ตั้งค่าผู้รับผิดชอบเป็นผู้ดูแลระบบ
-                device.borrowedDate = ''; // เคลียร์วันที่ยืม
-                device.returnedDate = returnDate; // บันทึกวันที่คืนจริง
+                // อัปเดตสถานะอุปกรณ์
+                const device = appData.devices.find(d => d.id === borrowing.deviceId);
+                if (device) {
+                    device.status = 'available';
+                    device.ownerBorrower = 'ผู้ดูแลระบบ'; // คืนอุปกรณ์แล้ว ผู้ดูแลระบบเป็นผู้รับผิดชอบ
+                    device.borrowedDate = ''; // เคลียร์วันที่ยืม
+                    device.returnedDate = returnDate; // บันทึกวันที่คืน
+                }
+
+                saveData();
+                renderDevices();
+                renderBorrowHistory();
+                populateBorrowDeviceDropdown();
+                populateReturnBorrowingDropdown();
+                showToast(`คืนอุปกรณ์ "${borrowing.deviceName}" สำเร็จ!`);
+                this.reset();
+            } else {
+                showToast('ไม่พบรายการยืมที่กำลังใช้งาน หรือรายการนี้ถูกคืนไปแล้ว!');
             }
-
-            saveData();
-            renderDevices(); // อัปเดตตารางอุปกรณ์
-            renderBorrowHistory(); // อัปเดตประวัติ
-            populateBorrowDeviceDropdown(); // อัปเดต dropdown ยืม
-            populateReturnBorrowingDropdown(); // อัปเดต dropdown คืน
-            this.reset();
-            showToast('บันทึกการคืนอุปกรณ์สำเร็จ!');
         });
 
-        // --- Search Handlers ---
-        // ค้นหาในแท็บอุปกรณ์
-        document.getElementById('deviceSearch').addEventListener('keyup', function() {
-            renderDevices(this.value);
+        // --- Search Functionality ---
+        document.getElementById('deviceSearch').addEventListener('keyup', (event) => {
+            renderDevices(event.target.value);
         });
 
-        // ค้นหาในแท็บประวัติ
-        document.getElementById('historySearch').addEventListener('keyup', function() {
-            renderBorrowHistory(this.value);
+        document.getElementById('historySearch').addEventListener('keyup', (event) => {
+            renderBorrowHistory(event.target.value);
         });
+
     </script>
 </body>
 </html>
