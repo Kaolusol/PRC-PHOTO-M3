@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
@@ -378,7 +379,7 @@
                 populateReturnBorrowingDropdown(); // อัปเดต dropdown ด้วย
             }, (error) => {
                 console.error("Error fetching devices from Firestore: ", error);
-                showToast("เกิดข้อผิดพลาดในการโหลดอุปกรณ์จากฐานข้อมูล");
+                showToast(`เกิดข้อผิดพลาดในการโหลดอุปกรณ์จากฐานข้อมูล: ${error.message}`);
             });
         }
 
@@ -397,7 +398,7 @@
                 populateBorrowDeviceDropdown(); // อัปเดต dropdown ด้วย
             }, (error) => {
                 console.error("Error fetching borrowings from Firestore: ", error);
-                showToast("เกิดข้อผิดพลาดในการโหลดประวัติการยืม-คืนจากฐานข้อมูล");
+                showToast(`เกิดข้อผิดพลาดในการโหลดประวัติการยืม-คืนจากฐานข้อมูล: ${error.message}`);
             });
         }
 
@@ -608,6 +609,7 @@
                     const device = devices.find(d => d.id === id);
 
                     if (device) {
+                        console.log("กำลังแก้ไขอุปกรณ์:", device); // Log the full device object
                         const deviceIdInput = document.getElementById('deviceId');
                         if (deviceIdInput) deviceIdInput.value = device.id;
                         const deviceNameInput = document.getElementById('deviceName');
@@ -617,13 +619,26 @@
                         const deviceStatusSelect = document.getElementById('deviceStatus');
                         if (deviceStatusSelect) deviceStatusSelect.value = device.status;
                         const deviceImageInput = document.getElementById('deviceImage');
+                        // Ensure placeholder URL is converted to empty string if it's the default
                         if (deviceImageInput) deviceImageInput.value = device.imageUrl === 'https://via.placeholder.com/60/cccccc/333333?text=ITEM' ? '' : device.imageUrl;
                         const deviceOwnerBorrowerInput = document.getElementById('deviceOwnerBorrower');
                         if (deviceOwnerBorrowerInput) deviceOwnerBorrowerInput.value = device.ownerBorrower || '';
                         const deviceBorrowedDateInput = document.getElementById('deviceBorrowedDate');
                         if (deviceBorrowedDateInput) deviceBorrowedDateInput.value = device.borrowedDate || '';
                         const deviceReturnedDateInput = document.getElementById('deviceReturnedDate');
-                        if (returnedDateInput) deviceReturnedDateInput.value = device.returnedDate || '';
+                        // Corrected variable name here:
+                        if (deviceReturnedDateInput) deviceReturnedDateInput.value = device.returnedDate || '';
+
+
+                        console.log("ค่าในช่องกรอกข้อมูล Modal หลังจากโหลด:");
+                        console.log("deviceIdInput:", deviceIdInput ? deviceIdInput.value : 'N/A');
+                        console.log("deviceNameInput:", deviceNameInput ? deviceNameInput.value : 'N/A');
+                        console.log("deviceCodeInput:", deviceCodeInput ? deviceCodeInput.value : 'N/A');
+                        console.log("deviceStatusSelect:", deviceStatusSelect ? deviceStatusSelect.value : 'N/A');
+                        console.log("deviceImageInput:", deviceImageInput ? deviceImageInput.value : 'N/A');
+                        console.log("deviceOwnerBorrowerInput:", deviceOwnerBorrowerInput ? deviceOwnerBorrowerInput.value : 'N/A');
+                        console.log("deviceBorrowedDateInput:", deviceBorrowedDateInput ? deviceBorrowedDateInput.value : 'N/A');
+                        console.log("deviceReturnedDateInput:", deviceReturnedDateInput ? deviceReturnedDateInput.value : 'N/A');
 
 
                         const modalLabel = document.getElementById('deviceModalLabel');
@@ -652,7 +667,7 @@
                             showToast('ลบอุปกรณ์เรียบร้อยแล้ว!');
                         } catch (error) {
                             console.error("Error deleting device from Firestore: ", error);
-                            showToast("เกิดข้อผิดพลาดในการลบอุปกรณ์");
+                            showToast(`เกิดข้อผิดพลาดในการลบอุปกรณ์: ${error.message}`);
                         }
                     }
                 }
@@ -784,7 +799,7 @@
                 
                 let ownerBorrower = document.getElementById('deviceOwnerBorrower').value;
                 let borrowedDate = document.getElementById('deviceBorrowedDate').value;
-                let returnedDate = document = document.getElementById('deviceReturnedDate').value;
+                let returnedDate = document.getElementById('deviceReturnedDate').value;
 
                 const id = document.getElementById('deviceId').value;
 
@@ -814,17 +829,20 @@
 
                 try {
                     if (id) {
+                        console.log("กำลังพยายามอัปเดตอุปกรณ์ด้วย ID:", id);
+                        console.log("ข้อมูลอุปกรณ์ที่จะอัปเดต:", deviceData);
                         // แก้ไขอุปกรณ์ที่มีอยู่ (อัปเดตใน Firestore)
                         await updateDoc(doc(db, 'devices', id), deviceData);
                         showToast('แก้ไขอุปกรณ์เรียบร้อยแล้ว!');
                     } else {
+                        console.log("กำลังพยายามเพิ่มอุปกรณ์ใหม่ด้วยข้อมูล:", deviceData);
                         // เพิ่มอุปกรณ์ใหม่ (เพิ่มเข้า Firestore)
                         await addDoc(collection(db, 'devices'), deviceData);
                         showToast('เพิ่มอุปกรณ์ใหม่เรียบร้อยแล้ว!');
                     }
                 } catch (error) {
-                    console.error("Error saving device to Firestore: ", error);
-                    showToast("เกิดข้อผิดพลาดในการบันทึกอุปกรณ์");
+                    console.error("เกิดข้อผิดพลาดในการบันทึกอุปกรณ์ลง Firestore: ", error);
+                    showToast(`เกิดข้อผิดพลาดในการบันทึกอุปกรณ์: ${error.message}`); // Added error.message
                 }
 
                 // ไม่ต้องเรียก renderDevices(), saveData() เพราะ onSnapshot จะจัดการให้
@@ -917,7 +935,7 @@
                         this.reset();
                     } catch (error) {
                         console.error("Error borrowing device to Firestore: ", error);
-                        showToast("เกิดข้อผิดพลาดในการยืมอุปกรณ์");
+                        showToast(`เกิดข้อผิดพลาดในการยืมอุปกรณ์: ${error.message}`);
                     }
                 } else {
                     showToast('ไม่พบอุปกรณ์หรืออุปกรณ์ไม่อยู่ในสถานะ "ว่าง"');
@@ -932,7 +950,7 @@
                 event.preventDefault();
 
                 const borrowingId = document.getElementById('returnBorrowing').value;
-                const returnDate = document = document.getElementById('returnDate').value;
+                const returnDate = document.getElementById('returnDate').value;
 
                 if (!borrowingId || !returnDate) {
                     showToast('กรุณาเลือกรายการยืมและระบุวันที่คืน!');
@@ -964,7 +982,7 @@
                         this.reset();
                     } catch (error) {
                         console.error("Error returning device to Firestore: ", error);
-                        showToast("เกิดข้อผิดพลาดในการคืนอุปกรณ์");
+                        showToast(`เกิดข้อผิดพลาดในการคืนอุปกรณ์: ${error.message}`);
                     }
                 } else {
                     showToast('ไม่พบรายการยืมที่กำลังใช้งานอยู่สำหรับอุปกรณ์นี้');
