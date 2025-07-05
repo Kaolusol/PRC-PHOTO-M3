@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
@@ -10,9 +9,13 @@
     <link rel="icon" href="favicon.png" type="image/png"> 
     
     <style>
+        body {
+            padding-bottom: 60px; /* Add padding to the bottom of the body to prevent content from being hidden by the fixed footer */
+        }
         /* Custom Styles for Pre-App Screen */
         #preAppScreen {
             display: flex;
+            flex-direction: column; /* Allow content to stack vertically */
             justify-content: center;
             align-items: center;
             min-height: 100vh;
@@ -30,6 +33,7 @@
             padding: 40px;
             border-radius: 15px;
             box-shadow: 0 8px 16px rgba(0,0,0,0.15); /* More pronounced shadow */
+            /* Removed margin-bottom as footer is now outside */
         }
         .start-logo {
             margin-bottom: 20px;
@@ -72,6 +76,32 @@
         .owner-borrower-fields {
             display: none; /* ซ่อนโดยค่าเริ่มต้น */
         }
+        /* Style for the footer */
+        .footer-preapp { /* Specific class for footer on preAppScreen */
+            position: absolute; /* Position absolutely within preAppScreen */
+            bottom: 20px; /* Distance from the bottom */
+            left: 0; /* Align to the very left edge */
+            width: 100%; /* Take full width */
+            text-align: left; /* Align text to the left */
+            padding-left: 20px; /* Small padding from the left edge */
+            box-sizing: border-box; /* Include padding in the width calculation */
+            font-size: 0.85em;
+            color: #6c757d;
+        }
+        .footer-mainapp { /* Specific class for footer on mainApp */
+            width: 100%;
+            position: fixed; /* Changed to fixed position */
+            bottom: 0;
+            left: 0;
+            padding: 1rem 0;
+            background-color: #f8f9fa; /* Light background */
+            text-align: left; /* Changed to left-align */
+            padding-left: 20px; /* Added padding to the left */
+            font-size: 0.85em;
+            color: #6c757d;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.1); /* Optional: Add a subtle shadow at the top */
+            z-index: 1040; /* Ensure it's below modals but above other content */
+        }
     </style>
 </head>
 <body>
@@ -79,6 +109,7 @@
     <div id="preAppScreen">
         <div class="start-container">
             <div class="start-logo">
+                <!-- Reverted image source to original -->
                 <img src="S__30875655.jpg" alt="PRC LIVE M.3 Logo">
             </div>
             <h1>PRC LIVE M.3</h1>
@@ -96,7 +127,11 @@
                 </div>
             </div>
             <button class="btn btn-primary btn-lg mt-3" id="startButton">เข้าสู่ระบบ</button>
-            </div>
+            <!-- Moved footer-preapp outside start-container but inside preAppScreen -->
+        </div>
+        <div class="footer-preapp">
+            <span class="text-muted">V. 1.0.0 power by AI from Photo Team M.3</span>
+        </div>
     </div>
 
     <div id="mainApp" class="container">
@@ -749,7 +784,7 @@
                 
                 let ownerBorrower = document.getElementById('deviceOwnerBorrower').value;
                 let borrowedDate = document.getElementById('deviceBorrowedDate').value;
-                let returnedDate = document.getElementById('deviceReturnedDate').value;
+                let returnedDate = document = document.getElementById('deviceReturnedDate').value;
 
                 const id = document.getElementById('deviceId').value;
 
@@ -897,7 +932,7 @@
                 event.preventDefault();
 
                 const borrowingId = document.getElementById('returnBorrowing').value;
-                const returnDate = document.getElementById('returnDate').value;
+                const returnDate = document = document.getElementById('returnDate').value;
 
                 if (!borrowingId || !returnDate) {
                     showToast('กรุณาเลือกรายการยืมและระบุวันที่คืน!');
@@ -945,5 +980,10 @@
             });
         }
     </script>
+    <footer class="footer-mainapp"> <!-- Use footer-mainapp for the main app screen -->
+        <div class="container">
+            <span class="text-muted">V. 1.0.0 power by AI from Photo Team M.3</span>
+        </div>
+    </footer>
 </body>
 </html>
